@@ -1,20 +1,989 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Family Dipterocarpaceae in Malaysia - Interactive Learning Guide</title>
-    <meta name="description" content="Comprehensive interactive learning guide for undergraduate forestry students studying the Dipterocarpaceae family in Malaysia. Covers all 16 genera with detailed identification features." />
-    <meta name="author" content="Forestry Education Platform" />
-    <meta name="keywords" content="Dipterocarpaceae, Malaysia, forestry, botany, tree identification, meranti, keruing, kapur, educational" />
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Malaysian Dipterocarps - Learning Platform</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-    <meta property="og:title" content="Family Dipterocarpaceae in Malaysia - Interactive Learning Guide" />
-    <meta property="og:description" content="Learn about Malaysia's most important timber family with interactive identification guides, morphological features, and distribution maps for all 16 genera." />
-    <meta property="og:type" content="website" />
-  </head>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #2d5016 0%, #4a7c1e 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
 
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2d5016 0%, #4a7c1e 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .tabs {
+            display: flex;
+            background: #f5f5f5;
+            border-bottom: 2px solid #ddd;
+            overflow-x: auto;
+        }
+
+        .tab {
+            padding: 15px 30px;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            font-size: 16px;
+            font-weight: 600;
+            color: #666;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+
+        .tab:hover {
+            background: rgba(74, 124, 30, 0.1);
+            color: #4a7c1e;
+        }
+
+        .tab.active {
+            background: white;
+            color: #4a7c1e;
+            border-bottom: 3px solid #4a7c1e;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .search-box {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .search-box input {
+            flex: 1;
+            min-width: 250px;
+            padding: 12px 20px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border 0.3s;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: #4a7c1e;
+        }
+
+        .search-box button {
+            padding: 12px 30px;
+            background: #4a7c1e;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s;
+            font-weight: 600;
+        }
+
+        .search-box button:hover {
+            background: #3a6618;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 18px;
+            color: #4a7c1e;
+        }
+
+        .loading::after {
+            content: '...';
+            animation: dots 1.5s steps(4, end) infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
+        }
+
+        .error {
+            background: #fee;
+            color: #c33;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border-left: 4px solid #c33;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #2d5016 0%, #4a7c1e 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .stat-card h3 {
+            font-size: 2.5em;
+            margin-bottom: 5px;
+        }
+
+        .stat-card p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            border-radius: 10px;
+            border: 1px solid #ddd;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+
+        thead {
+            background: #4a7c1e;
+            color: white;
+        }
+
+        th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        tbody tr:hover {
+            background: #f9f9f9;
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 25px;
+            margin-top: 20px;
+        }
+
+        .card {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .card:hover {
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+            transform: translateY(-4px);
+            border-color: #4a7c1e;
+        }
+
+        .card-image {
+            width: 100%;
+            height: 220px;
+            object-fit: cover;
+            background: linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%);
+            display: block;
+        }
+
+        .card-image-placeholder {
+            width: 100%;
+            height: 220px;
+            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3em;
+            color: #4a7c1e;
+        }
+
+        .card-content {
+            padding: 20px;
+        }
+
+        .card h3 {
+            color: #2d5016;
+            margin-bottom: 8px;
+            font-size: 1.3em;
+            line-height: 1.3;
+        }
+
+        .card .subtitle {
+            font-style: italic;
+            color: #666;
+            margin-bottom: 12px;
+            font-size: 0.95em;
+        }
+
+        .card p {
+            color: #555;
+            line-height: 1.6;
+            margin-bottom: 8px;
+            font-size: 0.95em;
+        }
+
+        .card p strong {
+            color: #2d5016;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 5px 12px;
+            background: #4a7c1e;
+            color: white;
+            border-radius: 20px;
+            font-size: 0.85em;
+            margin: 5px 5px 0 0;
+            font-weight: 600;
+        }
+
+        .badge.endangered {
+            background: #d32f2f;
+        }
+
+        .badge.vulnerable {
+            background: #f57c00;
+        }
+
+        .badge.endemic {
+            background: #1976d2;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+            font-size: 18px;
+        }
+
+        .no-data::before {
+            content: '🔍';
+            display: block;
+            font-size: 4em;
+            margin-bottom: 20px;
+        }
+
+        .result-count {
+            padding: 10px 0;
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+            
+            .header p {
+                font-size: 1em;
+            }
+            
+            .card-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .search-box {
+                flex-direction: column;
+            }
+            
+            .search-box input,
+            .search-box button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌳 Malaysian Dipterocarps</h1>
+            <p>Explore the Rich Biodiversity of Malaysian Tropical Rainforests</p>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('species')">🌿 Species Database</button>
+            <button class="tab" onclick="showTab('genera')">📊 Genera Overview</button>
+            <button class="tab" onclick="showTab('conservation')">🛡️ Conservation Info</button>
+            <button class="tab" onclick="showTab('distribution')">🗺️ Distribution Details</button>
+            <button class="tab" onclick="showTab('synonyms')">📚 Synonyms</button>
+        </div>
+
+        <div class="content">
+            <!-- Species Tab -->
+            <div id="species-tab" class="tab-content active">
+                <div class="search-box">
+                    <input type="text" id="species-search" placeholder="Search species by scientific name, genus, or family...">
+                    <button onclick="searchSpecies()">🔍 Search</button>
+                    <button onclick="loadSpecies()">📋 Show All</button>
+                </div>
+                <div class="result-count" id="species-count"></div>
+                <div id="species-content"></div>
+            </div>
+
+            <!-- Genera Tab -->
+            <div id="genera-tab" class="tab-content">
+                <div class="search-box">
+                    <input type="text" id="genera-search" placeholder="Search genera...">
+                    <button onclick="searchGenera()">🔍 Search</button>
+                    <button onclick="loadGenera()">📋 Show All</button>
+                </div>
+                <div class="result-count" id="genera-count"></div>
+                <div id="genera-content"></div>
+            </div>
+
+            <!-- Conservation Tab -->
+            <div id="conservation-tab" class="tab-content">
+                <div class="search-box">
+                    <input type="text" id="conservation-search" placeholder="Search by species ID or threat level...">
+                    <button onclick="searchConservation()">🔍 Search</button>
+                    <button onclick="loadConservation()">📋 Show All</button>
+                </div>
+                <div class="result-count" id="conservation-count"></div>
+                <div id="conservation-content"></div>
+            </div>
+
+            <!-- Distribution Tab -->
+            <div id="distribution-tab" class="tab-content">
+                <div class="search-box">
+                    <input type="text" id="distribution-search" placeholder="Search by species or region...">
+                    <button onclick="searchDistribution()">🔍 Search</button>
+                    <button onclick="loadDistribution()">📋 Show All</button>
+                </div>
+                <div class="result-count" id="distribution-count"></div>
+                <div id="distribution-content"></div>
+            </div>
+
+            <!-- Synonyms Tab -->
+            <div id="synonyms-tab" class="tab-content">
+                <div class="search-box">
+                    <input type="text" id="synonyms-search" placeholder="Search synonyms...">
+                    <button onclick="searchSynonyms()">🔍 Search</button>
+                    <button onclick="loadSynonyms()">📋 Show All</button>
+                </div>
+                <div class="result-count" id="synonyms-count"></div>
+                <div id="synonyms-content"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Supabase client
+        const SUPABASE_URL = 'https://xrntnarchlglhllvlrnv.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhybnRuYXJjaGxnbGhsbHZscm52Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU0MTU4MzksImV4cCI6MjA4MDk5MTgzOX0.Q0PjW5dMU07EDoR-GGDpIjATlSC5AJxNeEdOlYaO96w';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // Tab switching
+        function showTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            document.getElementById(tabName + '-tab').classList.add('active');
+            event.target.classList.add('active');
+
+            switch(tabName) {
+                case 'species': loadSpecies(); break;
+                case 'genera': loadGenera(); break;
+                case 'conservation': loadConservation(); break;
+                case 'distribution': loadDistribution(); break;
+                case 'synonyms': loadSynonyms(); break;
+            }
+        }
+
+        // Helper function to get badge class
+        function getBadgeClass(status) {
+            if (!status) return '';
+            const lower = status.toLowerCase();
+            if (lower.includes('endangered')) return 'endangered';
+            if (lower.includes('vulnerable')) return 'vulnerable';
+            return '';
+        }
+
+        // Species functions
+        async function loadSpecies() {
+            const container = document.getElementById('species-content');
+            const countEl = document.getElementById('species-count');
+            container.innerHTML = '<div class="loading">Loading species data</div>';
+            countEl.innerHTML = '';
+
+            try {
+                const { data, error } = await supabase
+                    .from('dipterocarp_species_2025_12_11_075458')
+                    .select('*')
+                    .limit(100);
+
+                if (error) throw error;
+
+                if (data.length === 0) {
+                    container.innerHTML = '<div class="no-data">No species data found</div>';
+                    return;
+                }
+
+                countEl.innerHTML = `Showing ${data.length} species`;
+
+                let html = '<div class="card-grid">';
+                data.forEach(species => {
+                    html += `
+                        <div class="card">
+                            ${species.image_url ? 
+                                `<img src="${species.image_url}" alt="${species.scientific_name || 'Species'}" class="card-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                <div class="card-image-placeholder" style="display:none;">🌳</div>` : 
+                                '<div class="card-image-placeholder">🌳</div>'
+                            }
+                            <div class="card-content">
+                                <h3>${species.scientific_name || 'Unknown Species'}</h3>
+                                ${species.maksud_epithet ? `<div class="subtitle">${species.maksud_epithet}</div>` : ''}
+                                <p><strong>Genus:</strong> ${species.genus || 'N/A'}</p>
+                                <p><strong>Family:</strong> ${species.family || 'N/A'}</p>
+                                ${species.habitat ? `<p><strong>Habitat:</strong> ${species.habitat}</p>` : ''}
+                                ${species.local_name_malay ? `<p><strong>Local Name:</strong> ${species.local_name_malay}</p>` : ''}
+                                <div>
+                                    ${species.conservation_status ? `<span class="badge ${getBadgeClass(species.conservation_status)}">${species.conservation_status}</span>` : ''}
+                                    ${species.endemic_to_malaysia ? '<span class="badge endemic">Endemic to Malaysia</span>' : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                container.innerHTML = html;
+
+            } catch (error) {
+                container.innerHTML = `<div class="error">❌ Error loading species: ${error.message}</div>`;
+            }
+        }
+
+        async function searchSpecies() {
+            const searchTerm = document.getElementById('species-search').value.trim();
+            if (!searchTerm) {
+                loadSpecies();
+                return;
+            }
+
+            const container = document.getElementById('species-content');
+            const countEl = document.getElementById('species-count');
+            container.innerHTML = '<div class="loading">Searching</div>';
+            countEl.innerHTML = '';
+
+            try {
+                const { data, error } = await supabase
+                    .from('dipterocarp_species_2025_12_11_075458')
+                    .select('*')
+                    .or(`scientific_name.ilike.%${searchTerm}%,genus.ilike.%${searchTerm}%,family.ilike.%${searchTerm}%,local_name_malay.ilike.%${searchTerm}%`)
+                    .limit(100);
+
+                if (error) throw error;
+
+                if (data.length === 0) {
+                    container.innerHTML = '<div class="no-data">No results found for your search</div>';
+                    return;
+                }
+
+                countEl.innerHTML = `Found ${data.length} result${data.length !== 1 ? 's' : ''}`;
+
+                let html = '<div class="card-grid">';
+                data.forEach(species => {
+                    html += `
+                        <div class="card">
+                            ${species.image_url ? 
+                                `<img src="${species.image_url}" alt="${species.scientific_name || 'Species'}" class="card-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                <div class="card-image-placeholder" style="display:none;">🌳</div>` : 
+                                '<div class="card-image-placeholder">🌳</div>'
+                            }
+                            <div class="card-content">
+                                <h3>${species.scientific_name || 'Unknown Species'}</h3>
+                                ${species.maksud_epithet ? `<div class="subtitle">${species.maksud_epithet}</div>` : ''}
+                                <p><strong>Genus:</strong> ${species.genus || 'N/A'}</p>
+                                <p><strong>Family:</strong> ${species.family || 'N/A'}</p>
+                                ${species.habitat ? `<p><strong>Habitat:</strong> ${species.habitat}</p>` : ''}
+                                ${species.local_name_malay ? `<p><strong>Local Name:</strong> ${species.local_name_malay}</p>` : ''}
+                                <div>
+                                    ${species.conservation_status ? `<span class="badge ${getBadgeClass(species.conservation_status)}">${species.conservation_status}</span>` : ''}
+                                    ${species.endemic_to_malaysia ? '<span class="badge endemic">Endemic to Malaysia</span>' : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                container.innerHTML = html;
+
+            } catch (error) {
+                container.innerHTML = `<div class="error">❌ Error searching: ${error.message}</div>`;
+            }
+        }
+
+        // Genera functions
+        async function loadGenera() {
+            const container = document.getElementById('genera-content');
+            const countEl = document.getElementById('genera-count');
+            container.innerHTML = '<div class="loading">Loading genera data</div>';
+            countEl.innerHTML = '';
+
+            try {
+                const { data, error } = await supabase
+                    .from('dipterocarp_genera_2025_12_11_075458')
+                    .select('*');
+
+                if (error) throw error;
+
+                if (data.length === 0) {
+                    container.innerHTML = '<div class="no-data">No genera data found</div>';
+                    return;
+                }
+
+                countEl.innerHTML = `Showing ${data.length} genera`;
+
+                let html = '<div class="card-grid">';
+                data.forEach(genus => {
+                    const totalSpecies = (genus.species_count_malaysia || 0);
+                    html += `
+                        <div class="card">
+                            <div class="card-image-placeholder">🌺</div>
+                            <div class="card-content">
+                                <h3>${genus.genus_name || 'Unknown Genus'}</h3>
+                                <p><strong>Total Species in Malaysia:</strong> ${totalSpecies}</p>
+                                <p><strong>Peninsular Malaysia:</strong> ${genus.species_count_peninsular || 0}</p>
+                                <p><strong>Sabah:</strong> ${genus.species_count_sabah || 0}</p>
+                                <p><strong>Sarawak:</strong> ${genus.species_count_sarawak || 0}</p>
+                                ${genus.distribution ? `<p><strong>Distribution:</strong> ${genus.distribution}</p>` : ''}
+                                ${genus.description ? `<p style="margin-top: 10px; font-size: 0.9em;">${genus.description}</p>` : ''}
+                            </div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                container.innerHTML = html;
+
+            } catch (error) {
+                container.innerHTML = `<div class="error">❌ Error loading genera: ${error.message}</div>`;
+            }
+        }
+
+        async function searchGenera() {
+            const searchTerm = document.getElementById('genera-search').value.trim();
+            if (!searchTerm) {
+                loadGenera();
+                return;
+            }
+
+            const container = document.getElementById('genera-content');
+            const countEl = document.getElementById('genera-count');
+            container.innerHTML = '<div class="loading">Searching</div>';
+            countEl.innerHTML = '';
+
+            try {
+                const { data, error } = await supabase
+                    .from('dipterocarp_genera_2025_12_11_075458')
+                    .select('*')
+                    .ilike('genus_name', `%${searchTerm}%`);
+
+                if (error) throw error;
+
+                if (data.length === 0) {
+                    container.innerHTML = '<div class="no-data">No results found for your search</div>';
+                    return;
+                }
+
+                countEl.innerHTML = `Found ${data.length} result${data.length !== 1 ? 's' : ''}`;
+
+                let html = '<div class="card-grid">';
+                data.forEach(genus => {
+                    const totalSpecies = (genus.species_count_malaysia || 0);
+                    html += `
+                        <div class="card">
+                            <div class="card-image-placeholder">🌺</div>
+                            <div class="card-content">
+                                <h3>${genus.genus_name || 'Unknown Genus'}</h3>
+                                <p><strong>Total Species in Malaysia:</strong> ${totalSpecies}</p>
+                                <p><strong>Peninsular Malaysia:</strong> ${genus.species_count_peninsular || 0}</p>
+                                <p><strong>Sabah:</strong> ${genus.species_count_sabah || 0}</p>
+                                <p><strong>Sarawak:</strong> ${genus.species_count_sarawak || 0}</p>
+                                ${genus.distribution ? `<p><strong>Distribution:</strong> ${genus.distribution}</p>` : ''}
+                                ${genus.description ? `<p style="margin-top: 10px; font-size: 0.9em;">${genus.description}</p>` : ''}
+                            </div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                container.innerHTML = html;
+
+            } catch (error) {
+                container.innerHTML = `<div class="error">❌ Error searching: ${error.message}</div>`;
+            }
+        }
+
+        // Conservation functions
+        async function loadConservation() {
+            const container = document.getElementById('conservation-content');
+            const countEl = document.getElementById('conservation-count');
+            container.innerHTML = '<div class="loading">Loading conservation data</div>';
+            countEl.innerHTML = '';
+
+            try {
+                const { data, error } = await supabase
+                    .from('conservation_info_2025_12_11_075458')
+                    .select('*')
+                    .limit(100);
+
+                if (error) throw error;
+
+                if (data.length === 0) {
+                    container.innerHTML = '<div class="no-data">No conservation data found</div>';
+                    return;
+                }
+
+                countEl.innerHTML = `Showing ${data.length} records`;
+
+                let html = '<div class="table-container"><table><thead><tr>';
+                html += '<th>Species ID</th><th>Threat Level</th><th>Main Threats</th><th>Conservation Actions</th><th>Protected Areas</th><th>Population Trend</th>';
+                html += '</tr></thead><tbody>';
+
+                data.forEach(item => {
+                    html += `
+                        <tr>
+                            <td>${item.species_id || 'N/A'}</td>
+                            <td><span class="badge ${getBadgeClass(item.threat_level)}">${item.threat_level || 'N/A'}</span></td>
+                            <td>${item.main_threats || 'N/A'}</td>
+                            <td>${item.conservation_actions || 'N/A'}</td>
+                            <td>${item.protected_areas || 'N/A'}</td>
+                            <td>${item.population_trend || 'N/A'}</td>
+                        </tr>
+                    `;
+                });
+                html += '</tbody></table></div>';
+                container.innerHTML = html;
+
+            } catch (error) {
+                container.innerHTML = `<div class="error">❌ Error loading conservation data: ${error.message}</div>`;
+            }
+        }
+
+        async function searchConservation() {
+            const searchTerm = document.getElementById('conservation-search').value.trim();
+            if (!searchTerm) {
+                loadConservation();
+                return;
+            }
+
+            const container = document.getElementById('conservation-content');
+            const countEl = document.getElementById('conservation-count');
+            container.innerHTML = '<div class="loading">Searching</div>';
+            countEl.innerHTML = '';
+
+            try {
+                const { data, error } = await supabase
+                    .from('conservation_info_2025_12_11_075458')
+                    .select('*')
+                    .or(`species_id.ilike.%${searchTerm}%,threat_level.ilike.%${searchTerm}%`)
+                    .limit(100);
+
+                if (error) throw error;
+
+                if (data.length === 0) {
+                    container.innerHTML = '<div class="no-data">No results found for your search</div>';
+                    return;
+                }
+
+                countEl.innerHTML = `Found ${data.length} result${data.length !== 1 ? 's' : ''}`;
+
+                let html = '<div class="table-container"><table><thead><tr>';
+                html += '<th>Species ID</th><th>Threat Level</th><th>Main Threats</th><th>Conservation Actions</th><th>Protected Areas</th><th>Population Trend</th>';
+                html += '</tr></thead><tbody>';
+
+                data.forEach(item => {
+                    html += `
+                        <tr>
+                            <td>${item.species_id || 'N/A'}</td>
+                            <td><span class="badge ${getBadgeClass(item.threat_level)}">${item.threat_level || 'N/A'}</span></td>
+                            <td>${item.main_threats || 'N/A'}</td>
+                            <td>${item.conservation_actions || 'N/A'}</td>
+                            <td>${item.protected_areas || 'N/A'}</td>
+                            <td>${item.population_trend || 'N/A'}</td>
+                        </tr>
+                    `;
+                });
+                html += '</tbody></table></div>';
+                container.innerHTML = html;
+
+            } catch (error) {
+                container.innerHTML = `<div class="error">❌ Error searching: ${error.message}</div>`;
+            }
+        }
+
+        // Distribution functions
+        async function loadDistribution() {
+            const container = document.getElementById('distribution-content');
+            const countEl = document.getElementById('distribution-count');
+            container.innerHTML = '<div class="loading">Loading distribution data</div>';
+            countEl.innerHTML = '';
+
+            try {
+                const { data, error } = await supabase
+                    .from('distribution_details_2025_12_11_075458')
+                    .select('*')
+                    .limit(100);
+
+                if (error) throw error;
+
+                if (data.length === 0) {
+                    container.innerHTML = '<div class="no-data">No distribution data found</div>';
+                    return;
+                }
+
+                countEl.innerHTML = `Showing ${data.length} records`;
+
+                let html = '<div class="table-container"><table><thead><tr>';
+                html += '<th>Species ID</th><th>State/Region</th><th>Specific Locations</th><th>Abundance</th>';
+                html += '</tr></thead><tbody>';
+
+                data.forEach(item => {
+                    html += `
+                        <tr>
+                            <td>${item.species_id || 'N/A'}</td>
+                            <td><strong>${item.state_region || 'N/A'}</strong></td>
+                            <td>${item.specific_locations || 'N/A'}</td>
+                            <td>${item.abundance || 'N/A'}</td>
+                        </tr>
+                    `;
+                });
+                html += '</tbody></table></div>';
+                container.innerHTML = html;
+
+            } catch (error) {
+                container.innerHTML = `<div class="error">❌ Error loading distribution data: ${error.message}</div>`;
+            }
+        }
+
+        async function searchDistribution() {
+            const searchTerm = document.getElementById('distribution-search').value.trim();
+            if (!searchTerm) {
+                loadDistribution();
+                return;
+            }
+
+            const container = document.getElementById('distribution-content');
+            const countEl = document.getElementById('distribution-count');
+            container.innerHTML = '<div class="loading">Searching</div>';
+            countEl.innerHTML = '';
+
+            try {
+                const { data, error } = await supabase
+                    .from('distribution_details_2025_12_11_075458')
+                    .select('*')
+                    .or(`species_id.ilike.%${searchTerm}%,state_region.ilike.%${searchTerm}%,specific_locations.ilike.%${searchTerm}%`)
+                    .limit(100);
+
+                if (error) throw error;
+
+                if (data.length === 0) {
+                    container.innerHTML = '<div class="no-data">No results found for your search</div>';
+                    return;
+                }
+
+                countEl.innerHTML = `Found ${data.length} result${data.length !== 1 ? 's' : ''}`;
+
+                let html = '<div class="table-container"><table><thead><tr>';
+                html += '<th>Species ID</th><th>State/Region</th><th>Specific Locations</th><th>Abundance</th>';
+                html += '</tr></thead><tbody>';
+
+                data.forEach(item => {
+                    html += `
+                        <tr>
+                            <td>${item.species_id || 'N/A'}</td>
+                            <td><strong>${item.state_region || 'N/A'}</strong></td>
+                            <td>${item.specific_locations || 'N/A'}</td>
+                            <td>${item.abundance || 'N/A'}</td>
+                        </tr>
+                    `;
+                });
+                html += '</tbody></table></div>';
+                container.innerHTML = html;
+
+            } catch (error) {
+                container.innerHTML = `<div class="error">❌ Error searching: ${error.message}</div>`;
+            }
+        }
+
+        // Synonyms functions
+        async function loadSynonyms() {
+            const container = document.getElementById('synonyms-content');
+            const countEl = document.getElementById('synonyms-count');
+            container.innerHTML = '<div class="loading">Loading synonyms data</div>';
+            countEl.innerHTML = '';
+
+            try {
+                const { data, error } = await supabase
+                    .from('dipterocarp_synonyms_2025_12_11_075458')
+                    .select('*')
+                    .limit(100);
+
+                if (error) throw error;
+
+                if (data.length === 0) {
+                    container.innerHTML = '<div class="no-data">No synonyms data found</div>';
+                    return;
+                }
+
+                countEl.innerHTML = `Showing ${data.length} records`;
+
+                let html = '<div class="table-container"><table><thead><tr>';
+                html += '<th>Accepted Name</th><th>Synonym Name</th><th>Author</th><th>Type</th>';
+                html += '</tr></thead><tbody>';
+
+                data.forEach(item => {
+                    html += `
+                        <tr>
+                            <td><strong>${item.accepted_name || 'N/A'}</strong></td>
+                            <td><em>${item.synonym_name || 'N/A'}</em></td>
+                            <td>${item.accepted_author || 'N/A'}</td>
+                            <td>${item.synonym_type || 'N/A'}</td>
+                        </tr>
+                    `;
+                });
+                html += '</tbody></table></div>';
+                container.innerHTML = html;
+
+            } catch (error) {
+                container.innerHTML = `<div class="error">❌ Error loading synonyms: ${error.message}</div>`;
+            }
+        }
+
+        async function searchSynonyms() {
+            const searchTerm = document.getElementById('synonyms-search').value.trim();
+            if (!searchTerm) {
+                loadSynonyms();
+                return;
+            }
+
+            const container = document.getElementById('synonyms-content');
+            const countEl = document.getElementById('synonyms-count');
+            container.innerHTML = '<div class="loading">Searching</div>';
+            countEl.innerHTML = '';
+
+            try {
+                const { data, error } = await supabase
+                    .from('dipterocarp_synonyms_2025_12_11_075458')
+                    .select('*')
+                    .or(`accepted_name.ilike.%${searchTerm}%,synonym_name.ilike.%${searchTerm}%`)
+                    .limit(100);
+
+                if (error) throw error;
+
+                if (data.length === 0) {
+                    container.innerHTML = '<div class="no-data">No results found for your search</div>';
+                    return;
+                }
+
+                countEl.innerHTML = `Found ${data.length} result${data.length !== 1 ? 's' : ''}`;
+
+                let html = '<div class="table-container"><table><thead><tr>';
+                html += '<th>Accepted Name</th><th>Synonym Name</th><th>Author</th><th>Type</th>';
+                html += '</tr></thead><tbody>';
+
+                data.forEach(item => {
+                    html += `
+                        <tr>
+                            <td><strong>${item.accepted_name || 'N/A'}</strong></td>
+                            <td><em>${item.synonym_name || 'N/A'}</em></td>
+                            <td>${item.accepted_author || 'N/A'}</td>
+                            <td>${item.synonym_type || 'N/A'}</td>
+                        </tr>
+                    `;
+                });
+                html += '</tbody></table></div>';
+                container.innerHTML = html;
+
+            } catch (error) {
+                container.innerHTML = `<div class="error">❌ Error searching: ${error.message}</div>`;
+            }
+        }
+
+        // Load initial data
+        loadSpecies();
+
+        // Add enter key support for search boxes
+        document.getElementById('species-search').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') searchSpecies();
+        });
+        document.getElementById('genera-search').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') searchGenera();
+        });
+        document.getElementById('conservation-search').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') searchConservation();
+        });
+        document.getElementById('distribution-search').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') searchDistribution();
+        });
+        document.getElementById('synonyms-search').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') searchSynonyms();
+        });
+    </script>
+</body>
 </html>
